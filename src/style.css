@@ -24,11 +24,17 @@ canvas
     height: 100%;
 }
 
-button {
-    padding: 10px;
+.filters {
+    display: inline-block;
     margin-left: 50%;
     transform: translateX(-50%);
     margin-top: 80px;
     position: relative;
     z-index: 5;
+}
+
+.filters button {
+    padding: 10px;
+    margin-right: 10px;
+
 }

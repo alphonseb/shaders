@@ -1,10 +1,30 @@
+/**
+ * MODULES
+ */
 import * as THREE from 'three';
-import { Tweenmax } from 'gsap';
+import { TweenMax } from 'gsap';
 import normalizeWheel from 'normalize-wheel';
 
+/**
+ * STYLE
+ */
 import './style.css';
-import textureSrc from './alu-texture.jpg';
-import pizza from './pizza.jpeg';
+
+/**
+ * TEXTURES
+ */
+import bubbleTextureSrc from './textures/alu-texture.jpg';
+import pizzaTextureSrc from './textures/pizza.jpeg';
+
+/**
+ * SHADERS
+ */
+import pizzaVertex from './shaders/pizza.vert';
+import pizzaFragment from './shaders/pizza.frag';
+import bubbleVertex from './shaders/bubble.vert';
+import bubbleFragment from './shaders/bubble.frag';
+
+/* ====================================== */
 
 const sizes = {
     width: document.body.clientWidth,
@@ -26,34 +46,28 @@ scene.add(camera);
 /**
  * Renderer
  */
-const renderer = new THREE.WebGLRenderer({ alpha: true });
+const renderer = new THREE.WebGLRenderer({ alpha: true }); // alpha: true allows transparent background
 renderer.setSize(sizes.width, sizes.height);
 document.body.appendChild(renderer.domElement);
 
 /**
- * 
- * OBJECT
- * 
+ * Texture Loader
  */
-
-/**
- * Geometry
- */
-const geometry = new THREE.SphereGeometry(5, 100, 100);
-
-
 const textureLoader = new THREE.TextureLoader();
-const texture = textureLoader.load(textureSrc)
-console.log(textureSrc);
-
-
-
 
 /**
- * Material
+ * 
+ * OBJECTS
+ * 
  */
-// const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-const material = new THREE.ShaderMaterial({
+
+/**
+ * Bubble
+ */
+const bubbleGeometry = new THREE.SphereGeometry(5, 100, 100);
+
+const bubbleTexture = textureLoader.load(bubbleTextureSrc)
+const bubbleShaderMaterial = new THREE.ShaderMaterial({
     uniforms: {
         u_time: { value: 0},
         u_mouse: {
@@ -64,130 +78,47 @@ const material = new THREE.ShaderMaterial({
         },
         u_texture: {
             type: 't',
-            value: texture
+            value: bubbleTexture
         }
     },
-    vertexShader: `
-        #define PI 3.1415926535897932384626433832795
-
-        uniform float u_time;
-        uniform vec2 u_mouse;
-        varying float v_offset;
-        varying vec3 v_normal;
-        varying vec2 v_uv;
-
-        void main() {
-            vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-            float offset = sin(u_time) * (sin(PI * normal.x * u_mouse.y) + cos(PI * normal.y * u_mouse.x));
-            offset += cos(modelPosition.x * 0.3 - u_time);
-            // float offset = sin(u_time) * 2.0 * (sin(5.0 * normal.x * u_mouse.y) * cos(5.0 * normal.y * u_mouse.x)) / 5.0;
-            // float offset = sin(u_time) * (sin(5.0 * (pow(normal.x * u_mouse.y, 2.0) + pow(normal.y * u_mouse.x, 2.0))));
-
-            v_offset = offset;
-            v_normal = normal;
-            v_uv = uv;
-            modelPosition.xyz += offset; 
-            gl_Position = projectionMatrix * viewMatrix * modelPosition;
-        }
-    `,
-    fragmentShader: `
-        #define PI 3.1415926535897932384626433832795
-        uniform float u_time;
-        uniform sampler2D u_texture;
-
-        varying float v_offset;
-        varying vec3 v_normal;
-        varying vec2 v_uv;
-
-        vec3 color1 = vec3(0.0, 0.3, 1.0);
-        vec3 color2 = vec3(1.0, 0.3, 0.0);
-
-        void main() {
-            vec3 color = mix(color1, color2, (v_offset / 2.0) + 0.5);
-            vec4 texture = texture2D(u_texture, v_uv);
-            vec3 textureColor = texture.rgb;
-            gl_FragColor = vec4(textureColor + color * ((sin(v_normal * 1.5) / 2.0) + 0.5) , 1.0);
-        }
-    `
+    vertexShader: bubbleVertex,
+    fragmentShader: bubbleFragment
 });
 
+const bubbleMesh = new THREE.Mesh(bubbleGeometry, bubbleShaderMaterial);
+
+const bubbleContainer = new THREE.Object3D();
+bubbleContainer.add(bubbleMesh)
+bubbleContainer.position.x = -10
+scene.add(bubbleContainer);
 
 /**
- * Mesh
+ * Pizza
  */
-const mesh = new THREE.Mesh(geometry, material);
-
-const meshContainer = new THREE.Object3D();
-meshContainer.add(mesh)
-meshContainer.position.x = -10
-// scene.add(meshContainer);
 
 let pizzaRatio;
-const pizzaTexture = textureLoader.load(pizza, () => {
+const pizzaTexture = textureLoader.load(pizzaTextureSrc, () => {
     pizzaRatio = pizzaTexture.image.width / pizzaTexture.image.height;
     createPizzaMesh()
 })
 
 const planeShaderMaterial = new THREE.ShaderMaterial({
     uniforms: {
-        u_time: {
-            value: 0
-        },
+        u_time: { value: 0 },
+        u_timing: { value: 0 },
         u_pizza: {
             type: 't',
             value: pizzaTexture
         },
-        u_mouseX: {
-            value: 0 
-        },
-        u_translateX: {
-            value: 0
-        },
-        u_ratio: {
-            value: 0
-        }
+        u_mouseX: { value: 0 },
+        u_clickedX: { value: 0 },
+        u_clickedY: { value: 0 },
+        u_translateX: { value: 0 },
+        u_ratio: { value: 0 },
+        u_clicked: { value: false }
     },
-    vertexShader: `
-        #define PI 3.1415926535897932384626433832795
-        uniform float u_time;
-        uniform float u_mouseX;
-        // uniform float u_translateX;
-
-        varying vec2 v_uv;
-
-        void main() {
-            v_uv = uv;
-
-            vec4 modelPosition = modelMatrix * vec4(position, 1.0);
-            modelPosition.x += u_mouseX * sin(1.0 * PI * uv.y);
-            gl_Position = projectionMatrix * viewMatrix * modelPosition ;
-        }
-    `,
-    fragmentShader: `
-        uniform sampler2D u_pizza;
-        uniform float u_time;
-        uniform float u_ratio;
-
-        varying vec2 v_uv;
-
-        void main() {
-            vec2 st = vec2(v_uv.x, v_uv.y / u_ratio);
-            vec4 pizzaTexture = texture2D(u_pizza, v_uv);
-            float circlePct = distance(st, vec2(0.5, 0.5 / u_ratio));
-            float smallCirclePct = distance(st, vec2(0.0));
-            float smallCircle2Pct = distance(st, vec2(0.8, 0.6 / u_ratio));
-            float smallCircle3Pct = distance(st, vec2(0.2, 1.0 / u_ratio));
-            float smallCircle4Pct = distance(st, vec2(1.0, 0.2 / u_ratio));
-            
-            pizzaTexture.a = 1.0 - step(-0.5 + u_time * 0.4, circlePct * 2.0);
-            pizzaTexture.a += 1.0 - step(u_time * 0.1, smallCirclePct);
-            pizzaTexture.a += 1.0 - step(u_time * 0.2, smallCircle2Pct * 1.6);
-            pizzaTexture.a += 1.0 - step(u_time * 0.2, smallCircle3Pct * 1.6);
-            pizzaTexture.a += 1.0 - step(u_time * 0.25, smallCircle4Pct * 2.0);
-            
-            gl_FragColor = pizzaTexture;
-        }
-    `
+    vertexShader: pizzaVertex,
+    fragmentShader: pizzaFragment
 })
 
 const planeContainer = new THREE.Object3D()
@@ -274,16 +205,38 @@ const currentCursorMoving = {
 };
 
 let isCursorDown = false;
+let isMoving = false;
 
-let totalCursorMoved = 0;
+let totalCursorMoved = {
+    x: 0,
+    y: 0
+};
+
+let isOnImage = false;
+let isOnBubble = false;
 
 window.addEventListener('mousedown', (ev) => {
     currentCursorMoving.x = ev.clientX / sizes.width - 0.5;
     currentCursorMoving.y = ev.clientY / sizes.width - 0.5;
+
+    if (isOnImage) {
+        
+        isCursorDown = true;
+        planeShaderMaterial.uniforms.u_timing.value = 0;
+        
+        if (holeActive) {
+            planeShaderMaterial.uniforms.u_clicked.value = !planeShaderMaterial.uniforms.u_clicked.value;
+        }
+        planeShaderMaterial.uniforms.u_clickedX.value = pizzaIntersection[0].uv.x;
+        planeShaderMaterial.uniforms.u_clickedY.value = pizzaIntersection[0].uv.y;
+    }
     
-    isCursorDown = true;
-    totalCursorMoved = 0;
+
+    totalCursorMoved.x = 0;
+    totalCursorMoved.y = 0;
 });
+
+const raycastingMouse = new THREE.Vector2()
 
 
 
@@ -291,33 +244,32 @@ window.addEventListener('mousemove', (ev) => {
     
     cursorMoving.x = ev.clientX / sizes.width - 0.5;
     cursorMoving.y = ev.clientY / sizes.height - 0.5;
-
+    raycastingMouse.x = (ev.clientX / sizes.width) * 2 - 1;
+    raycastingMouse.y = (ev.clientY / sizes.height) * 2 - 1;
     
 
     if (isCursorDown) {
         cursorMoved.x = cursorMoving.x - currentCursorMoving.x;
         cursorMoved.y = cursorMoving.y - currentCursorMoving.y;
 
-        totalCursorMoved += cursorMoved.x
-
-        
+        totalCursorMoved.x += cursorMoved.x
+        totalCursorMoved.y += cursorMoved.y
 
         // material.uniforms.u_mouse.value.x += cursorMoved.y * 5
         // material.uniforms.u_mouse.value.y += cursorMoved.x * 5
+
         if (Math.abs(planeShaderMaterial.uniforms.u_mouseX.value + cursorMoved.x * 5) > 1.5) {
             planeShaderMaterial.uniforms.u_mouseX.value = Math.sign(planeShaderMaterial.uniforms.u_mouseX.value) * 1.5
         } else {
             planeShaderMaterial.uniforms.u_mouseX.value += cursorMoved.x * 5
         }
 
-        planeShaderMaterial.uniforms.u_translateX.value += cursorMoved.x * 10
-
         
         currentCursorMoving.x = cursorMoving.x;
         currentCursorMoving.y = cursorMoving.y;
         
-        // meshContainer.rotation.y += cursorMoved.x * 3;
-        // meshContainer.rotation.x += cursorMoved.y * 3;
+        // bubbleContainer.rotation.y += cursorMoved.x * 3;
+        // bubbleContainer.rotation.x += cursorMoved.y * 3;
         // camera.position.x += cursorMoved.x * 3;
         // camera.position.y += cursorMoved.y * 3;
     }
@@ -333,13 +285,13 @@ window.addEventListener('keyup', () => {
 })
 
 window.addEventListener('mouseup', () => {
-    if (Math.abs(totalCursorMoved * 10) > 1) {
+    if (Math.abs(totalCursorMoved.x * 10) > 1) {
         
         TweenMax.to(planeContainer.position, 1.2, {
-            x: `+=${ Math.sign(totalCursorMoved) * Math.min(Math.abs(totalCursorMoved) * 10, 5) }`,
+            x: `+=${ Math.sign(totalCursorMoved.x) * Math.min(Math.abs(totalCursorMoved.x) * 10, 10) }`,
             ease: Power4.easeOut,
             onComplete: () => {
-                totalCursorMoved = 0;
+                totalCursorMoved.x = 0;
             }
         });
     }
@@ -372,26 +324,50 @@ $button.addEventListener('click', () => {
     planeShaderMaterial.uniforms.u_time.value = 0;
 })
 
+let holeActive = false;
+const $holeCheckbox = document.querySelector('.js-hole');
+$holeCheckbox.addEventListener('change', () => {
+    holeActive = !holeActive;
+})
+const raycaster = new THREE.Raycaster();
 
+let pizzaIntersection = [];
 
 const loop = () => {
-
     if (keyPressed === 'ArrowLeft') {
-        meshContainer.rotation.y += 0.05;
+        bubbleContainer.rotation.y += 0.05;
     }
     if (keyPressed === 'ArrowRight') {
-        meshContainer.rotation.y -= 0.05;
+        bubbleContainer.rotation.y -= 0.05;
     }
     if (keyPressed === 'ArrowUp') {
-        meshContainer.rotation.x += 0.05;
+        bubbleContainer.rotation.x += 0.05;
     }
     if (keyPressed === 'ArrowDown') {
-        meshContainer.rotation.x -= 0.05;
+        bubbleContainer.rotation.x -= 0.05;
     }
     
+    raycaster.setFromCamera(raycastingMouse, camera);
+
+    
+    pizzaIntersection = raycaster.intersectObject(planeContainer, true)
+    const bubbleIntersection = raycaster.intersectObject(bubbleContainer, true)
+    if (pizzaIntersection.length) {
+        isOnImage = true;
+    } else {
+        isOnImage = false;
+    }
+    if (bubbleIntersection.length) {
+        isOnBubble = true;
+    } else {
+        isOnBubble = false;
+    }
+    
+
     // shaderMaterial.uniforms.uTime.value += 0.5;
-    material.uniforms.u_time.value += 0.05;
+    bubbleShaderMaterial.uniforms.u_time.value += 0.05;
     planeShaderMaterial.uniforms.u_time.value += 0.05;
+    planeShaderMaterial.uniforms.u_timing.value += 0.05;
     
     camera.lookAt(scene.position)
     renderer.render(scene, camera);

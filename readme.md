@@ -20,5 +20,5 @@ npm i -g parcel-bundler
 
 3. Launch the dev server
 ```
-parcel index.html
+parcel src/index.html
 ```
