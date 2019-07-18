@@ -24,7 +24,7 @@ void main() {
     pizzaTexture.a += 1.0 - step(u_time * 0.25, smallCircle4Pct * 2.0);
 
     if (u_clicked) {
-        float randomCirclePct = distance(st, vec2(u_clickedX, (1.0 - u_clickedY)/ u_ratio));
+        float randomCirclePct = distance(st, vec2(u_clickedX, u_clickedY/ u_ratio));
 
         pizzaTexture.a = step(u_timing * 0.02, randomCirclePct * 2.0);
         // pizzaTexture.a = u_timing;

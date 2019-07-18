@@ -13,16 +13,13 @@ import './style.css';
 /**
  * TEXTURES
  */
-import bubbleTextureSrc from './textures/alu-texture.jpg';
 import pizzaTextureSrc from './textures/pizza.jpeg';
 
 /**
- * SHADERS
+ * OBJECTS
  */
-import pizzaVertex from './shaders/pizza.vert';
-import pizzaFragment from './shaders/pizza.frag';
-import bubbleVertex from './shaders/bubble.vert';
-import bubbleFragment from './shaders/bubble.frag';
+import Bubble from './objects/Bubble';
+import ImageSlide from './objects/ImageSlide';
 
 /* ====================================== */
 
@@ -40,7 +37,7 @@ const scene = new THREE.Scene();
  * Camera
  */
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height);
-camera.position.z = 12;
+camera.position.z = 18;
 scene.add(camera);
 
 /**
@@ -64,75 +61,42 @@ const textureLoader = new THREE.TextureLoader();
 /**
  * Bubble
  */
-const bubbleGeometry = new THREE.SphereGeometry(5, 100, 100);
 
-const bubbleTexture = textureLoader.load(bubbleTextureSrc)
-const bubbleShaderMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        u_time: { value: 0},
-        u_mouse: {
-            value: {
-                x: 0.5,
-                y: 0.5
-            }
-        },
-        u_texture: {
-            type: 't',
-            value: bubbleTexture
-        }
-    },
-    vertexShader: bubbleVertex,
-    fragmentShader: bubbleFragment
-});
-
-const bubbleMesh = new THREE.Mesh(bubbleGeometry, bubbleShaderMaterial);
-bubbleMesh.name = 'bubble';
-
-const bubbleContainer = new THREE.Object3D();
-bubbleContainer.add(bubbleMesh)
-bubbleContainer.position.x = -10
-scene.add(bubbleContainer);
+const bubble = new Bubble({ textureLoader })
 
 /**
  * Pizza
  */
 
-let pizzaRatio;
-const pizzaTexture = textureLoader.load(pizzaTextureSrc, () => {
-    pizzaRatio = pizzaTexture.image.width / pizzaTexture.image.height;
-    createPizzaMesh()
+const imageSlide = new ImageSlide({
+    textureLoader,
+    textureSrc: pizzaTextureSrc,
+    width: 8
 })
 
-const planeShaderMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-        u_time: { value: 0 },
-        u_timing: { value: 0 },
-        u_pizza: {
-            type: 't',
-            value: pizzaTexture
-        },
-        u_mouseX: { value: 0 },
-        u_clickedX: { value: 0 },
-        u_clickedY: { value: 0 },
-        u_translateX: { value: 0 },
-        u_ratio: { value: 0 },
-        u_clicked: { value: false }
-    },
-    vertexShader: pizzaVertex,
-    fragmentShader: pizzaFragment
-})
+/**
+ * Object Selection
+ */
 
-const planeContainer = new THREE.Object3D()
-const createPizzaMesh = () => {
-    const pizzaWidth = 8
-    const planeGeometry = new THREE.PlaneGeometry(pizzaWidth, pizzaWidth / pizzaRatio, 8, 8)
-    planeShaderMaterial.uniforms.u_ratio.value = pizzaRatio;
-    const planeMesh = new THREE.Mesh(planeGeometry, planeShaderMaterial);
-    planeMesh.name = 'pizza';
-    planeContainer.add(planeMesh)
-    planeContainer.position.x = 0
-    scene.add(planeContainer)
-}
+const $imageControls = document.querySelector('.image-controls')
+
+const $select = document.querySelector('.js-obj-select');
+$select.addEventListener('change', (ev) => {
+    $imageControls.style.display = 'none';
+    while (scene.children.length) {
+        scene.remove(scene.children[0]);
+    }
+    switch (ev.target.selectedOptions[0].value) {
+        case 'image-slide':
+            $imageControls.style.display = 'initial';
+            imageSlide.material.uniforms.u_time.value = 0;
+            scene.add(imageSlide.container);
+            break;
+        case 'bubble':
+            scene.add(bubble.container);
+            break;
+    }
+}) ;
 
 /**
  * Cursor
@@ -174,14 +138,14 @@ window.addEventListener('mousedown', (ev) => {
     
     if (isOn['pizza']) {
         isCursorDownOn['pizza'] = true;
-        planeShaderMaterial.uniforms.u_timing.value = 0;
+        imageSlide.material.uniforms.u_timing.value = 0;
 
         if (holeActive) {
-            planeShaderMaterial.uniforms.u_clicked.value = !planeShaderMaterial.uniforms.u_clicked.value;
+            imageSlide.material.uniforms.u_clicked.value = true;
         }
 
-        planeShaderMaterial.uniforms.u_clickedX.value = intersections[0].uv.x;
-        planeShaderMaterial.uniforms.u_clickedY.value = intersections[0].uv.y;
+        imageSlide.material.uniforms.u_clickedX.value = intersections[0].uv.x;
+        imageSlide.material.uniforms.u_clickedY.value = intersections[0].uv.y;
     }
 
     if (isOn['bubble']) {
@@ -215,35 +179,26 @@ window.addEventListener('mousemove', (ev) => {
 
 
         
-        if (Math.abs(planeShaderMaterial.uniforms.u_mouseX.value + cursorMoved.x * 5) > 1.5) {
-            planeShaderMaterial.uniforms.u_mouseX.value = Math.sign(planeShaderMaterial.uniforms.u_mouseX.value) * 1.5
+        if (Math.abs(imageSlide.material.uniforms.u_mouseX.value + cursorMoved.x * 5) > 1.5) {
+            imageSlide.material.uniforms.u_mouseX.value = Math.sign(imageSlide.material.uniforms.u_mouseX.value) * 1.5
         } else {
-            planeShaderMaterial.uniforms.u_mouseX.value += cursorMoved.x * 5
+            imageSlide.material.uniforms.u_mouseX.value += cursorMoved.x * 5
         }
 
         
     }
     
     if (isCursorDownOn['bubble']) {
-        bubbleShaderMaterial.uniforms.u_mouse.value.x += cursorMoved.y * 0.5;
-        bubbleShaderMaterial.uniforms.u_mouse.value.y += cursorMoved.x * 0.5;
+        bubble.material.uniforms.u_mouse.value.x += cursorMoved.y * 1.5;
+        bubble.material.uniforms.u_mouse.value.y += cursorMoved.x * 1.5;
     }
 });
-
-let keyPressed;
-
-window.addEventListener('keydown', (ev) => {
-    keyPressed = ev.key;
-})
-window.addEventListener('keyup', () => {
-    keyPressed = null;
-})
 
 window.addEventListener('mouseup', () => {
     if (isCursorDownOn['pizza']) {
         if (Math.abs(totalCursorMoved.x * 10) > 1) {
             
-            TweenMax.to(planeContainer.position, 1.2, {
+            TweenMax.to(imageSlide.container.position, 1.2, {
                 x: `+=${ Math.sign(totalCursorMoved.x) * Math.min(Math.abs(totalCursorMoved.x) * 10, 10) }`,
                 ease: Power4.easeOut,
                 onComplete: () => {
@@ -251,7 +206,7 @@ window.addEventListener('mouseup', () => {
                 }
             });
         }
-        TweenMax.to(planeShaderMaterial.uniforms.u_mouseX, 0.6, {
+        TweenMax.to(imageSlide.material.uniforms.u_mouseX, 0.6, {
             value: 0,
             ease: Power2.easeOut
         })
@@ -259,15 +214,15 @@ window.addEventListener('mouseup', () => {
     }
     if (isCursorDownOn['bubble']) {
         if (Math.abs(totalCursorMoved.x * 10) > 1) {
-            TweenMax.to(bubbleContainer.position, 5, {
+            TweenMax.to(bubble.container.position, 5, {
                 x: `+=${ Math.sign(totalCursorMoved.x) * Math.min(Math.abs(totalCursorMoved.x) * 30, 50) }`,
                 ease: Power4.easeOut,
                 onComplete: () => {
                     totalCursorMoved.x = 0;
                 }
             });
-            TweenMax.to(bubbleContainer.rotation, 5, {
-                y: `+=${ Math.sign(totalCursorMoved.x) * Math.min(Math.abs(totalCursorMoved.x) * 10, 5) }`,
+            TweenMax.to(bubble.container.rotation, 5, {
+                y: `+=${ Math.sign(totalCursorMoved.x) * Math.min(Math.abs(totalCursorMoved.x) * 20, 10) }`,
                 ease: Power4.easeOut,
                 onComplete: () => {
                     totalCursorMoved.x = 0;
@@ -275,15 +230,15 @@ window.addEventListener('mouseup', () => {
             });
         }
         if (Math.abs(totalCursorMoved.y * 10) > 1) {
-            TweenMax.to(bubbleContainer.position, 5, {
+            TweenMax.to(bubble.container.position, 5, {
                 y: `+=${ -Math.sign(totalCursorMoved.y) * Math.min(Math.abs(totalCursorMoved.y) * 30, 50) }`,
                 ease: Power4.easeOut,
                 onComplete: () => {
                     totalCursorMoved.y = 0;
                 }
             });
-            TweenMax.to(bubbleContainer.rotation, 5, {
-                x: `+=${ Math.sign(totalCursorMoved.y) * Math.min(Math.abs(totalCursorMoved.y) * 10, 5) }`,
+            TweenMax.to(bubble.container.rotation, 5, {
+                x: `+=${ Math.sign(totalCursorMoved.y) * Math.min(Math.abs(totalCursorMoved.y) * 20, 10) }`,
                 ease: Power4.easeOut,
                 onComplete: () => {
                     totalCursorMoved.y = 0;
@@ -308,30 +263,34 @@ window.addEventListener('mousewheel', (ev) => {
 
 const $button = document.querySelector('.js-doit');
 $button.addEventListener('click', () => {
-    planeShaderMaterial.uniforms.u_time.value = 0;
+    imageSlide.material.uniforms.u_time.value = 0;
 })
+
+const $bubbleBackButton = document.querySelector('.js-bubble-back');
+$bubbleBackButton.addEventListener('click', () => {
+    TweenMax.killTweensOf(bubble.container.position)
+    bubble.container.position.x = 0;
+    bubble.container.position.y = 0;
+    $bubbleBackButton.style.display = 'none';
+});
 
 let holeActive = false;
 const $holeCheckbox = document.querySelector('.js-hole');
-$holeCheckbox.addEventListener('change', () => {
+$holeCheckbox.addEventListener('change', (ev) => {
     holeActive = !holeActive;
+    if (!ev.target.checked) {
+        imageSlide.material.uniforms.u_clicked.value = false;
+    }
 })
 const raycaster = new THREE.Raycaster();
 
 let intersections = [];
 
 const loop = () => {
-    if (keyPressed === 'ArrowLeft') {
-        bubbleContainer.rotation.y += 0.05;
-    }
-    if (keyPressed === 'ArrowRight') {
-        bubbleContainer.rotation.y -= 0.05;
-    }
-    if (keyPressed === 'ArrowUp') {
-        bubbleContainer.rotation.x += 0.05;
-    }
-    if (keyPressed === 'ArrowDown') {
-        bubbleContainer.rotation.x -= 0.05;
+    
+    if (Math.abs(bubble.container.position.x) > (Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z + bubble.size.x)
+        || Math.abs(bubble.container.position.y) > (Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z + bubble.size.y)) {
+        $bubbleBackButton.style.display = 'initial';
     }
     
     raycaster.setFromCamera(raycastingMouse, camera);
@@ -345,10 +304,9 @@ const loop = () => {
         })
     }
 
-    // shaderMaterial.uniforms.uTime.value += 0.5;
-    bubbleShaderMaterial.uniforms.u_time.value += 0.05;
-    planeShaderMaterial.uniforms.u_time.value += 0.05;
-    planeShaderMaterial.uniforms.u_timing.value += 0.05;
+    bubble.material.uniforms.u_time.value += 0.05;
+    imageSlide.material.uniforms.u_time.value += 0.05;
+    imageSlide.material.uniforms.u_timing.value += 0.05;
     
     camera.lookAt(scene.position)
     renderer.render(scene, camera);

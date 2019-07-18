@@ -24,11 +24,20 @@ canvas
     height: 100%;
 }
 
+h1 {
+    font-family: 'Helvetica Neue', sans-serif;
+    text-align: center;
+    margin-top: 30px;
+}
+
 .filters {
-    display: inline-block;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     margin-left: 50%;
     transform: translateX(-50%);
-    margin-top: 80px;
+    margin-top: 60px;
     position: relative;
     z-index: 5;
 }
@@ -37,4 +46,15 @@ canvas
     padding: 10px;
     margin-right: 10px;
 
+}
+
+.js-bubble-back {
+    display: none;
+    margin-top: 20px;
+    margin-left: 50%;
+    transform: translateX(-50%);
+}
+
+.image-controls { 
+    display: none;
 }

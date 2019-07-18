@@ -7,13 +7,25 @@
     <title>Three - Shaders</title>
 </head>
 <body>
-    <h1>Is this working ?</h1>
+    <h1>Playground</h1>
     <div class="filters">
-        <button class="js-doit">See it again</button>
-        <label for="holes">
-            <input type="checkbox" class="js-hole" id="holes">
-            Make a hole on click
+        <label for="objects">
+            Play with :
+            <select class="js-obj-select" id="objects">
+                <option value="">Choose</option>
+                <option value="image-slide">Image</option>
+                <option value="bubble">Bubble</option>
+            </select>
         </label>
+        <br>
+        <div class="image-controls">
+            <button class="js-doit">See it again</button>
+            <label for="holes">
+                <input type="checkbox" class="js-hole" id="holes">
+                Make a hole on click
+            </label>
+        </div>
+        <button class="js-bubble-back">Get the bubble back</button>
     </div>
     <script src="index.js"></script>
 </body>
