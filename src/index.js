@@ -150,6 +150,7 @@ window.addEventListener('mousedown', (ev) => {
 
     if (isOn['bubble']) {
         isCursorDownOn['bubble'] = true;
+        TweenMax.killTweensOf(bubble.container.position)
     }
 
     totalCursorMoved.x = 0;
@@ -287,6 +288,13 @@ const raycaster = new THREE.Raycaster();
 let intersections = [];
 
 const loop = () => {
+    
+    if (isCursorDownOn['bubble']) {
+        bubble.container.position.x += totalCursorMoved.x;
+        bubble.container.position.y -= totalCursorMoved.y;
+        bubble.container.rotation.y += totalCursorMoved.x * 0.5;
+        bubble.container.rotation.x -= totalCursorMoved.y * 0.5;
+    }
     
     if (Math.abs(bubble.container.position.x) > (Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z + bubble.size.x)
         || Math.abs(bubble.container.position.y) > (Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z + bubble.size.y)) {
