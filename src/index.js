@@ -20,6 +20,7 @@ import pizzaTextureSrc from './textures/pizza.jpeg';
  */
 import Bubble from './objects/Bubble';
 import ImageSlide from './objects/ImageSlide';
+import Text from './objects/Text';
 
 /* ====================================== */
 
@@ -75,6 +76,11 @@ const imageSlide = new ImageSlide({
 })
 
 /**
+ * Text
+ */
+const text = new Text();
+
+/**
  * Object Selection
  */
 
@@ -95,6 +101,10 @@ $select.addEventListener('change', (ev) => {
         case 'bubble':
             scene.add(bubble.container);
             break;
+        case 'text':
+            scene.add(text.container);
+            text.material.uniforms.u_time.value = 0;
+        break;
     }
 }) ;
 
@@ -288,16 +298,31 @@ const raycaster = new THREE.Raycaster();
 let intersections = [];
 
 const loop = () => {
-    
-    if (isCursorDownOn['bubble']) {
-        bubble.container.position.x += totalCursorMoved.x;
-        bubble.container.position.y -= totalCursorMoved.y;
-        bubble.container.rotation.y += totalCursorMoved.x * 0.5;
-        bubble.container.rotation.x -= totalCursorMoved.y * 0.5;
+
+    if (cursorMoved.x === 0) {
+        totalCursorMoved.x = 0;
+    }
+    if (cursorMoved.y === 0) {
+        totalCursorMoved.y = 0;
     }
     
-    if (Math.abs(bubble.container.position.x) > (Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z + bubble.size.x)
-        || Math.abs(bubble.container.position.y) > (Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z + bubble.size.y)) {
+    if (isCursorDownOn['bubble']) {
+        TweenMax.to(bubble.container.position, 3.5, {
+            x: cursorMoving.x * Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z * 2,
+            y: -cursorMoving.y * Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z * 2,
+            ease: Power4.easeOut
+        })
+        TweenMax.to(bubble.container.rotation, 3.5, {
+            y: cursorMoving.x * Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z * 0.5,
+            x: cursorMoving.y * Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z * 0.5,
+            ease: Power4.easeOut
+        })
+        // bubble.container.rotation.y += totalCursorMoved.x * 0.3;
+        // bubble.container.rotation.x += totalCursorMoved.y * 0.3;
+    }
+    
+    if ((Math.abs(bubble.container.position.x) > (Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z + bubble.size.x)
+        || Math.abs(bubble.container.position.y) > (Math.tan((camera.fov / 2) * Math.PI/180) * camera.position.z + bubble.size.y)) && !isCursorDownOn['bubble']) {
         $bubbleBackButton.style.display = 'initial';
     }
     
@@ -315,7 +340,8 @@ const loop = () => {
     bubble.material.uniforms.u_time.value += 0.05;
     imageSlide.material.uniforms.u_time.value += 0.05;
     imageSlide.material.uniforms.u_timing.value += 0.05;
-    
+    text.material.uniforms.u_time.value += 0.05;
+
     camera.lookAt(scene.position)
     renderer.render(scene, camera);
     
