@@ -15,6 +15,8 @@ import './style.css';
  */
 import pizzaTextureSrc from './textures/pizza.jpeg';
 
+import Oswald from './fonts/Oswald_Regular.json';
+
 /**
  * OBJECTS
  */
@@ -78,7 +80,10 @@ const imageSlide = new ImageSlide({
 /**
  * Text
  */
-const text = new Text();
+const text = new Text({
+    string: 'Hello',
+    font: Oswald
+});
 
 /**
  * Object Selection
@@ -146,6 +151,8 @@ window.addEventListener('mousedown', (ev) => {
     currentCursorMoving.y = ev.clientY / sizes.width - 0.5;
 
     
+
+    
     if (isOn['pizza']) {
         isCursorDownOn['pizza'] = true;
         imageSlide.material.uniforms.u_timing.value = 0;
@@ -177,6 +184,9 @@ window.addEventListener('mousemove', (ev) => {
     cursorMoving.y = ev.clientY / sizes.height - 0.5;
     raycastingMouse.x = (ev.clientX / sizes.width) * 2 - 1;
     raycastingMouse.y = (1 - ev.clientY / sizes.height) * 2 - 1;
+
+    text.material.uniforms.u_mouse.value.x = cursorMoving.x;
+    text.material.uniforms.u_mouse.value.y = cursorMoving.y;
     
     cursorMoved.x = cursorMoving.x - currentCursorMoving.x;
     cursorMoved.y = cursorMoving.y - currentCursorMoving.y;
