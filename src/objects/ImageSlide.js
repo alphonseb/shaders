@@ -19,6 +19,7 @@ export default class ImageSlide {
         })
 
         this.material = new THREE.ShaderMaterial({
+            transparent: true,
             uniforms: {
                 u_time: { value: 0 },
                 u_timing: { value: 0 },
